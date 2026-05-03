@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S-CHAMP • Digital Tournament System</title>
+    
+    <!-- Libraries -->
+    <!-- 1. Firebase App (Phải đứng đầu tiên) -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+
+    <!-- 2. Firebase Auth và Firestore (Đứng sau App) -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
+    <!-- 3. Các thư viện khác -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --primary: #6366f1; --accent: #a855f7; --bg: #030712; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #f8fafc; overflow-x: hidden; min-height: 100vh; }
+
+        /* S-CHECK LUXURY STYLES */
+        .mesh-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-color: #030712; background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%); filter: blur(80px); }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        input { background: rgba(255, 255, 255, 0.03) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; outline: none !important; transition: all 0.3s ease; }
+        input:focus { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+
+        /* RADAR ANIMATION */
+        @keyframes radar-beam { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes radar-pulse { 0% { transform: scale(0.8); opacity: 0; } 50% { opacity: 0.4; } 100% { transform: scale(2.2); opacity: 0; } }
+        .radar-container { width: 250px; height: 250px; position: relative; margin: 0 auto; }
+        .radar-circle { position: absolute; inset: 0; border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 50%; }
+        .radar-beam { position: absolute; inset: -1px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 80%, rgba(99, 102, 241, 0.4) 100%); animation: radar-beam 3s linear infinite; }
+        .radar-pulse { position: absolute; inset: 0; border: 2px solid rgba(99, 102, 241, 0.4); border-radius: 50%; animation: radar-pulse 2s infinite; }
+
+        /* TOURNAMENT SPECIFIC */
+        .group-card { border-radius: 2rem; overflow: hidden; height: 100%; display: flex; flex-direction: column; }
+        .match-item { display: grid; grid-template-columns: 1fr 60px 1fr; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.03); margin-bottom: 8px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+        .match-item:hover { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+        .match-item.played { opacity: 0.4; }
+        .score-box { background: #1e293b; color: var(--primary); font-family: monospace; font-weight: 900; text-align: center; border-radius: 6px; padding: 4px 0; font-size: 12px; }
+
+        /* AUTH UI EFFECTS */
+        #confirm-password-container { max-height: 0; opacity: 0; overflow: hidden; transition: all 0.4s ease; }
+        #confirm-password-container.show { max-height: 150px; opacity: 1; margin-top: 1rem; }
+        .dot-signal { width: 6px; height: 6px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; transition: 0.3s; }
+        .field-container:focus-within .dot-signal { background-color: #22d3ee; box-shadow: 0 0 10px #22d3ee; transform: scale(1.3); }
+
+        /* TOAST */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; }
+        .toast-item { animation: toastIn 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; min-width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        @keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* BRACKET */
+        /* Container chứa toàn bộ sơ đồ */
+.bracket-container { 
+    display: flex; 
+    gap: 60px; 
+    padding: 40px; 
+    /* THAY ĐỔI TẠI ĐÂY */
+    height: auto; 
+    min-height: 400px; 
+    /* ---------------- */
+    position: relative;
+    align-items: stretch;
+    min-width: max-content; 
+}
+
+.bracket-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around; 
+    min-height: 100%; /* Dựa vào chiều cao của container cha */
+    gap: 20px; /* Khoảng cách tối thiểu giữa các trận */
+}
+
+.knockout-card { 
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,0.1); 
+    border-radius: 8px; 
+    width: 200px; 
+    height: 64px; /* Cố định chiều cao card */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+}
+
+        .knockout-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .k-player { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 11px; font-weight: 700; }
+        .k-player.win { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
+#bracket-svg { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    pointer-events: none; 
+    z-index: 0; /* Nằm dưới các card */
+}
+        
+#knockout-content .overflow-auto {
+    -webkit-overflow-scrolling: touch; /* Cuộn mượt trên iOS */
+}
+
+/* TỐI ƯU HIỆU ỨNG CHUYỂN TAB NEURAL */
+.tab-content {
+    opacity: 0;
+    transform: scale(0.98) translateY(10px);
+    filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* Đường cong xịn hơn */
+    pointer-events: none;
+    display: none;
+}
+
+.tab-content.active-show {
+    display: block;
+}
+
+.tab-content.active-animate {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+    pointer-events: auto;
+}
+
+.tab-btn-active {
+    color: var(--primary) !important;
+    opacity: 1 !important;
+    /* Dòng quan trọng để hiện dấu gạch chân */
+    border-bottom: 2px solid var(--primary) !important; 
+}
+
+/* ============================================================
+   BỘ HIỆU ỨNG BUTTON LUXURY HAPTIC (TỔNG THỂ)
+   ============================================================ */
+
+/* 1. Quy tắc chung cho TẤT CẢ các thẻ button trong hệ thống */
+button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hiệu ứng Nhấn (Active) cho mọi button: Cảm giác lún xuống */
+button:active {
+    transform: scale(0.92) !important;
+    filter: brightness(0.8);
+}
+
+/* 2. Hiệu ứng riêng cho nút Glow (Xác nhận, Tạo giải, Mở lại...) */
+.btn-glow {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-glow:hover {
+    transform: translateY(-3px); /* Bay lên nhẹ */
+    filter: brightness(1.1);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5);
+}
+
+/* 3. Hiệu ứng cho nút Hủy / Ghost Button (Dùng class .btn-cancel) */
+.btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* 4. Hiệu ứng cho các nút đặc biệt (Đăng xuất, Bảng điều khiển, Tab) */
+#tab-group, #tab-knockout, 
+#nav-auth-container button, 
+#history-list button {
+    /* Các nút này sẽ tự hưởng hiệu ứng :active ở trên */
+}
+
+#nav-auth-container button:hover,
+#history-list button:hover:not(.btn-glow) {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+/* 5. Nút xóa (Thùng rác) trong lịch sử */
+.fa-trash-can:parent, /* Nếu dùng thẻ bọc */
+button[onclick*="confirmDelete"] {
+    transition: all 0.2s ease;
+}
+
+button[onclick*="confirmDelete"]:hover {
+    background: #ef4444 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+}
+
+/* HIỆU ỨNG DẤU MỘC HOÀN TẤT */
+.stamp-done {
+    position: absolute;
+    top: 15px;
+    right: 10px;
+    padding: 4px 12px;
+    border: 3px solid #10b981; /* Màu Emerald */
+    color: #10b981;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 2px;
+    transform: rotate(15deg);
+    border-radius: 6px;
+    opacity: 0;
+    background: rgba(16, 185, 129, 0.05);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    z-index: 40;
+    pointer-events: none;
+    user-select: none;
+    animation: stampIn 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+@keyframes stampIn {
+    from { transform: scale(3) rotate(30deg); opacity: 0; filter: blur(10px); }
+    to { transform: scale(1) rotate(15deg); opacity: 0.8; filter: blur(0); }
+}
+
+/* Làm mờ nhẹ bảng đã xong để làm nổi bật dấu mộc */
+.group-finished {
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+    </style>
+</head>
+<body>
+
+<!-- MÀN HÌNH DASHBOARD CHÍNH -->
+<div id="view-dashboard" class="hidden min-h-screen flex flex-col p-6 md:p-10">
+    <!-- Header: Giữ nguyên ở trên cùng -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-black italic uppercase">S-CHAMP</h1>
+            <p class="text-indigo-400 font-bold tracking-widest text-[10px] md:text-xs uppercase">Trung tâm điều hành giải đấu</p>
+        </div>
+        <button id="btn-logout-dashboard" onclick="handleLogout()" class="text-red-500 font-black text-[10px] border border-red-500/20 px-4 md:px-6 py-2 rounded-full hover:bg-red-500/10 uppercase tracking-widest transition-all active:scale-95">THOÁT</button>
+    </div>
+
+    <!-- CĂN GIỮA NỘI DUNG: Thêm lớp flex-1, flex, items-center bên dưới -->
+    <div class="flex-1 flex items-center justify-center w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl w-full pb-20"> <!-- pb-20 để bù trừ khoảng cách với thanh footer -->
+            
+            <!-- Nút Tạo Giải Mới -->
+            <div onclick="document.getElementById('excel-input').click()" class="glass p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] text-center hover:border-indigo-500 transition-all cursor-pointer group">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-plus text-2xl md:text-3xl text-indigo-400"></i>
+                </div>
+                <h3 class="text-lg md:text-xl font-black uppercase">Tạo Giải Đấu Mới</h3>
+                <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-medium">Nạp file Excel để bắt đầu chia bảng Neural</p>
+            </div>
+
+            <!-- Nút Lịch Sử -->
+            <div onclick="showHistory()" class="glass p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] text-center hover:border-purple-500 transition-all cursor-pointer group">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-clock-rotate-left text-2xl md:text-3xl text-purple-400"></i>
+                </div>
+                <h3 class="text-lg md:text-xl font-black uppercase">Lịch Sử Giải Đấu</h3>
+                <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-medium italic">Xem lại các bảng đấu đã lưu</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="mesh-bg"></div>
+
+<!-- MODAL XÁC NHẬN TÙY CHỈNH -->
+<div id="modal-confirm" class="fixed inset-0 z-[20000] hidden flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4">
+    <div class="glass max-w-[380px] w-full p-10 rounded-[3.5rem] border-red-500/30 text-center shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+        <div class="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+            <i class="fa-solid fa-triangle-exclamation text-3xl text-red-500 animate-pulse"></i>
+        </div>
+        <h3 id="confirm-title" class="font-black uppercase text-red-500 mb-3 italic tracking-tighter text-xl">XÁC NHẬN XÓA</h3>
+        <p id="confirm-msg" class="text-slate-400 text-[10px] font-bold leading-relaxed mb-8 uppercase tracking-widest"></p>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="closeConfirmModal()" class="btn-cancel py-4 rounded-2xl text-[10px] font-black">HỦY BỎ</button>
+            <button id="btn-confirm-action" class="btn-glow py-4 rounded-2xl text-[10px] !from-red-600 !to-orange-600">XÁC NHẬN</button>
+        </div>
+    </div>
+</div>
+
+<!-- LOADER / RADAR SCREEN -->
+<div id="initial-loader" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#030712]">
+    <div class="radar-container mb-10">
+        <div class="radar-circle"></div>
+        <div class="radar-circle" style="inset: 20%"></div>
+        <div class="radar-circle" style="inset: 40%"></div>
+        <div class="radar-pulse"></div>
+        <div class="radar-beam"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(99,102,241,1)]"></div>
+        </div>
+    </div>
+    <div class="text-center">
+        <h2 class="text-indigo-400 text-[10px] font-black uppercase tracking-[5px] animate-pulse">S-CHAMP</h2>
+        <p id="loader-text" class="text-white/40 text-[8px] font-bold uppercase tracking-[2px] mt-2">Đang khởi tạo không gian Neural...</p>
+    </div>
+</div>
+
+<!-- MÀN HÌNH DASHBOARD CHÍNH -->
+<div id="view-dashboard" class="hidden min-h-screen flex flex-col p-10">
+    <div class="flex justify-between items-center mb-12">
+        <div>
+            <h1 class="text-4xl font-black italic uppercase">BẢNG ĐIỀU KHIỂN</h1>
+            <p class="text-indigo-400 font-bold tracking-widest text-xs uppercase">Trung tâm điều hành S-CHAMP</p>
+        </div>
+        <button onclick="handleLogout()" class="text-red-500 font-bold text-xs border border-red-500/20 px-6 py-2 rounded-full hover:bg-red-500/10">ĐĂNG XUẤT</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
+        <!-- Nút Tạo Giải Mới -->
+        <div onclick="document.getElementById('excel-input').click()" class="glass p-10 rounded-[3rem] text-center hover:border-indigo-500 transition-all cursor-pointer group">
+            <div class="w-20 h-20 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-plus text-3xl text-indigo-400"></i>
+            </div>
+            <h3 class="text-xl font-black uppercase">Tạo Giải Đấu Mới</h3>
+            <p class="text-slate-400 text-xs mt-2 font-medium italic">Nạp file Excel để bắt đầu chia bảng</p>
+        </div>
+
+        <!-- Nút Lịch Sử -->
+        <div onclick="showHistory()" class="glass p-10 rounded-[3rem] text-center hover:border-purple-500 transition-all cursor-pointer group">
+            <div class="w-20 h-20 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-clock-rotate-left text-3xl text-purple-400"></i>
+            </div>
+            <h3 class="text-xl font-black uppercase">Lịch Sử Giải Đấu</h3>
+            <p class="text-slate-400 text-xs mt-2 font-medium italic">Xem lại các bảng đấu đã lưu trên Cloud</p>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL LỊCH SỬ -->
+<div id="modal-history" class="fixed inset-0 z-[15000] hidden flex items-center justify-center bg-black/95 backdrop-blur-md p-6">
+    <div class="glass max-w-2xl w-full p-8 rounded-[3rem] max-h-[80vh] overflow-hidden flex flex-col border-indigo-500/20">
+        <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+            <h2 class="text-2xl font-black uppercase italic">Dữ liệu thi đấu đã lưu</h2>
+            <button onclick="closeHistory()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-2xl"></i></button>
+        </div>
+        <div id="history-list" class="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+            <!-- Item lịch sử sẽ render ở đây -->
+        </div>
+    </div>
+</div>
+
+<!-- AUTH VIEW -->
+<div id="view-auth" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="text-center mb-8">
+        <img src="https://i.ibb.co/8LjCY7sy/S-CHAMP.png" class="w-20 h-20 mx-auto rounded-2xl shadow-2xl mb-4 border border-white/20">
+        <h1 class="text-3xl font-black uppercase tracking-tighter italic text-white">QUẢN LÝ GIẢI ĐẤU</h1>
+    </div>
+
+    <div class="glass max-w-[400px] w-full p-10 rounded-[2.5rem] relative">
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-1.5 rounded-full border border-white/20">
+            <span id="auth-subtitle" class="text-[10px] text-white font-black uppercase tracking-widest">HỆ THỐNG TRUY CẬP</span>
+        </div>
+
+        <div class="space-y-5 pt-4">
+            <div class="field-container space-y-1.5">
+                <div class="flex items-center gap-2 ml-2">
+                    <div class="dot-signal"></div>
+                    <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Tài khoản</label>
+                </div>
+                <input type="text" id="auth-email" placeholder="Email của bạn" class="w-full p-4 rounded-2xl">
+            </div>
+
+            <div class="field-container space-y-1.5">
+                <div class="flex items-center gap-2 ml-2">
+                    <div class="dot-signal"></div>
+                    <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Mật khẩu</label>
+                </div>
+                <input type="password" id="auth-pass" placeholder="••••••••" class="w-full p-4 rounded-2xl">
+            </div>
+
+            <div id="confirm-password-container" class="field-container space-y-1.5">
+                <div class="flex items-center gap-2 ml-2">
+                    <div class="dot-signal"></div>
+                    <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Xác nhận mật khẩu</label>
+                </div>
+                <input type="password" id="auth-confirm" placeholder="••••••••" class="w-full p-4 rounded-2xl">
+            </div>
+
+            <button onclick="handleAuth()" class="btn-glow w-full py-4 rounded-2xl mt-4">
+                <span id="btn-auth-text">Đăng nhập ngay</span>
+            </button>
+
+            <button onclick="toggleAuthMode()" id="btn-toggle-auth" class="w-full text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-2">
+                Chưa có tài khoản? <span class="text-indigo-400 underline">Đăng ký</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN APP VIEW -->
+<div id="view-app" class="hidden min-h-screen flex flex-col">
+    <!-- THẺ INPUT ẨN DUY NHẤT (QUAN TRỌNG) -->
+    <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="importExcel(event)">
+
+    <nav class="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-white/5 backdrop-blur-2xl bg-[#030712]/80 sticky top-0 z-[100]">
+        <div class="flex items-center gap-4">
+            <img src="https://i.ibb.co/8LjCY7sy/S-CHAMP.png" class="w-10 h-10 rounded-lg">
+            <div>
+                <span class="text-xl font-black tracking-tighter uppercase italic">S-CHAMP</span>
+                <span class="block text-[8px] font-black tracking-[3px] text-indigo-400 -mt-1 uppercase">Pro Edition</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-4" id="nav-auth-container">
+            <!-- Nút nạp file trên thanh Nav -->
+            <div id="logout-btn-placeholder"></div>
+        </div>
+    </nav>
+
+        
+        <!-- BỘ NÚT CHUYỂN TAB -->
+        <div class="flex justify-center gap-8 mt-10">
+            <!-- Thêm class tab-btn-active vào đây -->
+            <button onclick="switchTab('group')" id="tab-group" class="tab-btn-active text-[11px] font-black uppercase tracking-[3px] pb-2">Vòng Bảng</button>
+            
+            <button onclick="switchTab('knockout')" id="tab-knockout" class="text-[11px] font-black uppercase tracking-[3px] pb-2 opacity-40">Vòng Quyết Đấu</button>
+        </div>
+
+    <main class="flex-1 p-8">
+        <!-- VÙNG VÒNG BẢNG -->
+        <div id="group-content" class="tab-content active-show active-animate">
+            <div id="empty-state" class="text-center py-32">
+                <p class="text-slate-600 uppercase tracking-[0.5em] text-xs font-bold mb-8">Hệ thống đang chờ danh sách</p>
+                <button onclick="document.getElementById('excel-input').click()" class="btn-glow px-10 py-4 rounded-2xl shadow-lg">BẮT ĐẦU NẠP DANH SÁCH</button>
+            </div>
+            <div id="group-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        </div>
+
+        <!-- VÙNG KNOCKOUT -->
+        <div id="knockout-content" class="tab-content">
+            <!-- Container chứa nút - sẽ ẩn đi khi có sơ đồ -->
+            <div id="knockout-init-container" class="flex flex-col items-center justify-center py-20">
+                <button id="btn-main-knockout" onclick="startKnockout()" class="btn-glow px-12 py-5 rounded-full text-[12px] font-black shadow-2xl animate-pulse">
+                    <!-- Chỗ này để JS tự điền chữ -->
+                </button>
+                <p class="text-slate-500 text-[10px] font-bold mt-4 uppercase tracking-[2px]">Hệ thống sẽ lấy Top 2 mỗi bảng vào vòng trong</p>
+            </div>
+
+            <!-- Sơ đồ thi đấu -->
+            <div id="bracket-view-container" class="hidden overflow-auto glass rounded-[3.5rem] p-12 relative shadow-inner" style="min-height: 600px;">
+                <div id="bracket-root" class="bracket-container">
+                    <svg id="bracket-svg"></svg>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MATCH MODAL -->
+<div id="modal-match" class="fixed inset-0 z-[12000] hidden flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+    <div class="glass max-w-sm w-full p-10 rounded-[3.5rem] border-indigo-500/30">
+        <h3 class="text-center font-black uppercase text-indigo-400 mb-8 italic">Cập nhật tỉ số</h3>
+        <div id="modal-form" class="space-y-4"></div>
+        <div class="grid grid-cols-2 gap-4 mt-8">
+            <button onclick="closeModal()" class="btn-cancel py-4 rounded-2xl text-[10px] font-bold">HỦY</button>
+            <button id="btn-save-score" class="btn-glow py-4 rounded-2xl text-[10px]">XÁC NHẬN</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+ // --- YOUR SPECIFIC FIREBASE CONFIG (fir-s-champ) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCd96YcYVz6bmuiysHb6-EC90KXBev7YDY",
+        authDomain: "fir-s-champ.firebaseapp.com",
+        projectId: "fir-s-champ",
+        storageBucket: "fir-s-champ.firebasestorage.app",
+        messagingSenderId: "351313492871",
+        appId: "1:351313492871:web:6faea23f1d9e968af77122",
+        measurementId: "G-9M2CPD2W5R"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    let players = [], groups = [], knockoutRounds = [], currentEdit = null, isLoginMode = true;
+    let currentFileName = "";
+
+    
+    // --- AUTH LOGIC ---
+// Khởi tạo Firestore Database
+const db = firebase.firestore();
+let currentTourneyId = null;
+
+// HÀM 1: Theo dõi đăng nhập (Cập nhật để hiện Dashboard)
+auth.onAuthStateChanged(user => {
+    const loader = document.getElementById('initial-loader');
+    if (loader) loader.classList.add('hidden');
+
+    if (user) {
+        showView('dashboard');
+        
+        // Lấy tên định danh (SĐT hoặc Email trước dấu @)
+        const loginIdentifier = user.email.split('@')[0];
+
+        // 1. Cập nhật nút trên thanh Nav (Góc phải màn hình thi đấu)
+        document.getElementById('logout-btn-placeholder').innerHTML = `
+            <button onclick="resetToDashboard()" class="text-[10px] font-black text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-full mr-2 hover:bg-indigo-500/10">BẢNG ĐIỀU KHIỂN</button>
+            <button onclick="handleLogout()" class="text-[10px] font-black text-red-500 border border-red-500/20 px-4 py-2 rounded-full hover:bg-red-500/10 uppercase">THOÁT (${loginIdentifier})</button>
+        `;
+
+        // 2. Cập nhật nút trên màn hình Dashboard
+        const dashBtn = document.getElementById('btn-logout-dashboard');
+        if(dashBtn) {
+            dashBtn.innerText = `THOÁT (${loginIdentifier})`;
+        }
+
+    } else {
+        showView('auth');
+    }
+});
+
+// HÀM 2: Tự động lưu dữ liệu lên Firebase (Gọi hàm này sau khi import hoặc save score)
+async function syncToFirebase() {
+    if (!auth.currentUser) return;
+    
+    const tourneyData = {
+        players,
+        groups,
+        knockoutRounds,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        userId: auth.currentUser.uid,
+        tourneyName: currentFileName || ("Giải đấu " + new Date().toLocaleString('vi-VN'))
+    };
+
+    try {
+        if (!currentTourneyId) {
+            const docRef = await db.collection("tournaments").add(tourneyData);
+            currentTourneyId = docRef.id;
+        } else {
+            await db.collection("tournaments").doc(currentTourneyId).set(tourneyData);
+        }
+        console.log("Neural Cloud: Synced ✅");
+    } catch (e) {
+        showToast("Lỗi đồng bộ Cloud: " + e.message, "error");
+    }
+}
+
+// HÀM 3: Hiển thị danh sách lịch sử từ Firebase
+async function showHistory() {
+    const listContainer = document.getElementById('history-list');
+    listContainer.innerHTML = '<div class="p-10 text-center animate-pulse uppercase font-bold text-xs">Đang truy xuất Neural Cloud...</div>';
+    document.getElementById('modal-history').classList.remove('hidden');
+
+    try {
+        const snapshot = await db.collection("tournaments")
+            .where("userId", "==", auth.currentUser.uid)
+            .get();
+
+        if (snapshot.empty) {
+            listContainer.innerHTML = '<p class="text-center py-10 text-slate-500 uppercase text-[10px] font-bold">Bạn chưa có dữ liệu giải đấu nào</p>';
+            return;
+        }
+
+        listContainer.innerHTML = "";
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const date = data.lastUpdated ? data.lastUpdated.toDate().toLocaleString('vi-VN') : "Vừa tạo";
+            const item = document.createElement('div');
+            item.className = "glass p-5 rounded-2xl flex justify-between items-center hover:bg-indigo-500/5 border border-white/5 transition-all";
+            item.innerHTML = `
+                <div>
+                    <h4 class="font-black uppercase text-indigo-400 text-sm">${data.tourneyName}</h4>
+                    <p class="text-[10px] text-slate-500 font-bold mt-1 uppercase">${date} • ${data.players ? data.players.length : 0} THÍ SINH</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- NÚT MỞ LẠI -->
+                    <button onclick="loadTournament('${doc.id}')" class="btn-glow px-6 py-2 rounded-xl text-[10px]">MỞ LẠI</button>
+                    
+                    <!-- NÚT XÓA ĐƠN LẺ MỚI -->
+                    <button onclick="confirmDeleteSingle('${doc.id}')" class="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-500/20" title="Xóa">
+                        <i class="fa-solid fa-trash-can text-[12px]"></i>
+                    </button>
+                </div>
+            `;
+            listContainer.appendChild(item);
+        });
+    } catch (e) { listContainer.innerHTML = `<p class="text-red-500">Lỗi: ${e.message}</p>`; }
+}
+
+// HÀM 4: Tải lại giải đấu cũ
+async function loadTournament(id) {
+    showLoader("Đang tải dữ liệu Neural...");
+    try {
+        const doc = await db.collection("tournaments").doc(id).get();
+        const data = doc.data();
+        
+        currentTourneyId = id;
+        currentFileName = data.tourneyName;
+        players = data.players;
+        groups = data.groups;
+        knockoutRounds = data.knockoutRounds || [];
+
+        renderGroups();
+        if (knockoutRounds.length > 0) renderBracket();
+        
+        showView('app'); 
+        closeHistory();
+
+        // THÊM DÒNG NÀY: Để đảm bảo khi load xong nó tự sáng nút Vòng Bảng
+        switchTab('group'); 
+
+    } catch (e) { showToast("Không thể tải giải đấu", "error"); }
+    finally { hideLoader(); }
+}
+
+function closeHistory() { document.getElementById('modal-history').classList.add('hidden'); }
+
+    async function handleAuth() {
+        const emailInput = document.getElementById('auth-email').value.trim();
+        const pass = document.getElementById('auth-pass').value.trim();
+        const confirm = document.getElementById('auth-confirm').value.trim();
+
+        if (!emailInput || !pass) return showToast("Vui lòng nhập đủ thông tin", "error");
+        if (!isLoginMode && pass !== confirm) return showToast("Mật khẩu không khớp", "error");
+
+        // TỰ ĐỘNG ĐỊNH DẠNG: Nếu người dùng không nhập @, hệ thống tự thêm đuôi để Firebase chấp nhận
+        const email = emailInput.includes('@') ? emailInput : emailInput + "@schamp.pro";
+
+        try {
+            if (isLoginMode) {
+                await auth.signInWithEmailAndPassword(email, pass);
+            } else {
+                await auth.createUserWithEmailAndPassword(email, pass);
+                showToast("Đăng ký thành công!", "success");
+            }
+        } catch (e) { 
+            // Hiển thị lỗi thân thiện hơn
+            let msg = e.message;
+            if(e.code === "auth/invalid-email") msg = "Định dạng tài khoản không hợp lệ!";
+            if(e.code === "auth/user-not-found") msg = "Tài khoản không tồn tại!";
+            if(e.code === "auth/wrong-password") msg = "Mật khẩu không chính xác!";
+            
+            showToast(msg, "error"); 
+        }
+    }
+
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('auth-subtitle').innerText = isLoginMode ? "HỆ THỐNG TRUY CẬP" : "ĐĂNG KÝ THÀNH VIÊN";
+        document.getElementById('btn-auth-text').innerText = isLoginMode ? "Đăng nhập ngay" : "Đăng ký tài khoản";
+        document.getElementById('btn-toggle-auth').innerHTML = isLoginMode ? "Chưa có tài khoản? <span class='text-indigo-400'>Đăng ký</span>" : "Đã có tài khoản? <span class='text-indigo-400'>Đăng nhập</span>";
+        document.getElementById('confirm-password-container').classList.toggle('show', !isLoginMode);
+    }
+
+    function handleLogout() { auth.signOut(); }
+
+    // --- TOURNAMENT LOGIC ---
+function importExcel(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    currentFileName = file.name.replace(/\.[^/.]+$/, ""); 
+    showLoader("Đang quét tiêu đề thông minh...");
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+
+            // --- CHIẾN THUẬT DÒ CỘT VÀ DÒ DÒNG ---
+            let headerRowIndex = -1;
+            let nameColIndex = 0; // Mặc định là cột đầu tiên
+
+            // Các từ khóa nhận diện cột tên
+            const keywords = ["họ và tên", "tên", "họ tên", "thí sinh", "vận động viên", "full name"];
+
+            // Duyệt từng dòng để tìm dòng tiêu đề
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row) continue;
+
+                // Kiểm tra từng ô trong dòng xem có chứa từ khóa không
+                const colIdx = row.findIndex(cell => {
+                    if (!cell) return false;
+                    const val = cell.toString().toLowerCase().trim();
+                    return keywords.includes(val);
+                });
+
+                if (colIdx !== -1) {
+                    headerRowIndex = i; // Dòng chứa tiêu đề
+                    nameColIndex = colIdx; // Cột chứa tên
+                    break;
+                }
+            }
+
+            // Nếu tìm thấy tiêu đề thì lấy từ dòng dưới tiêu đề, nếu không thì lấy từ dòng 0
+            let startIndex = headerRowIndex !== -1 ? headerRowIndex + 1 : 0;
+
+            // Trích xuất danh sách dựa trên CỘT đã tìm thấy
+            players = rows.slice(startIndex)
+                .map(r => r[nameColIndex] ? r[nameColIndex].toString().trim() : null)
+                .filter(n => {
+                    if (!n) return false;
+                    const low = n.toLowerCase();
+                    // Loại bỏ nếu dữ liệu trùng với từ khóa tiêu đề (phòng trường hợp file bị lặp tiêu đề)
+                    if (keywords.includes(low)) return false;
+                    return true;
+                });
+
+            // --- KẾT THÚC XỬ LÝ ---
+
+            if (players.length >= 4) {
+                currentTourneyId = null;
+                generateGroups();
+                renderGroups();
+                showView('app');
+                syncToFirebase();
+                showToast(`Thành công: Đã tìm thấy ${players.length} thí sinh tại cột ${String.fromCharCode(65 + nameColIndex)}!`, "success");
+            } else {
+                throw new Error("Không tìm thấy đủ thí sinh (Cần tối thiểu 4 người)!");
+            }
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            hideLoader();
+            e.target.value = "";
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function generateGroups() {
+    if (players.length < 4) {
+        hideLoader();
+        return showToast("Cần tối thiểu 4 thí sinh!", "error");
+    }
+    
+    let shuffled = [...players].sort(() => Math.random() - 0.5);
+    groups = [];
+    
+    const numGroups = Math.floor(shuffled.length / 4); 
+    const baseSize = Math.floor(shuffled.length / numGroups);
+    let remainder = shuffled.length % numGroups;
+
+    let currentIndex = 0;
+    for (let i = 0; i < numGroups; i++) {
+        const currentGroupSize = baseSize + (remainder > 0 ? 1 : 0);
+        remainder--;
+        let gpPlayers = shuffled.slice(currentIndex, currentIndex + currentGroupSize).map(name => ({ 
+            name, pts: 0, win: 0, loss: 0, diff: 0 
+        }));
+        groups.push({ name: String.fromCharCode(65 + i), players: gpPlayers, matches: [] });
+        currentIndex += currentGroupSize;
+    }
+
+    groups.forEach(g => {
+        for(let j=0; j<g.players.length; j++)
+            for(let k=j+1; k<g.players.length; k++)
+                g.matches.push({ p1: g.players[j].name, p2: g.players[k].name, s1: null, s2: null });
+    });
+
+    renderGroups();
+    hideLoader(); // TẮT RADAR SAU KHI ĐÃ HIỆN BẢNG
+}
+
+function renderGroups() {
+    const grid = document.getElementById('group-grid');
+    const emptyState = document.getElementById('empty-state');
+    
+    if (emptyState) emptyState.classList.add('hidden');
+    if (!grid) return;
+
+    grid.innerHTML = groups.map((g, gi) => {
+        // LOGIC KIỂM TRA: Nếu tất cả trận đấu (matches) đều đã có điểm (s1 !== null)
+        const isFinished = g.matches.length > 0 && g.matches.every(m => m.s1 !== null);
+        const stampHtml = isFinished ? `<div class="stamp-done">HOÀN TẤT</div>` : '';
+        const finishClass = isFinished ? 'group-finished' : '';
+
+        return `
+            <div class="group-card glass p-6 relative ${finishClass}">
+                ${stampHtml}
+                <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+                    <h3 class="text-indigo-400 font-black text-sm italic uppercase tracking-widest">BẢNG ${g.name}</h3>
+                </div>
+                <table class="w-full text-[10px] mb-6">
+                    <tr class="text-slate-500 uppercase font-black">
+                        <th class="text-left pb-2">Tên</th>
+                        <th class="text-right pb-2">Pts</th>
+                    </tr>
+                    ${g.players.sort((a,b)=>b.pts-a.pts||b.diff-a.diff).map(p=>`
+                        <tr class="border-t border-white/5">
+                            <td class="py-2 font-bold text-white">${p.name}</td>
+                            <td class="text-right text-indigo-400 font-black">${p.pts}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                <div class="space-y-2">
+                    ${g.matches.map((m, mi) => `
+                        <div class="match-item ${m.s1 !== null ? 'played' : ''}" onclick="openGroupModal(${gi},${mi})">
+                            <span class="text-[10px] font-bold truncate text-white/80">${m.p1}</span>
+                            <div class="score-box">${m.s1 !== null ? `${m.s1}-${m.s2}` : 'VS'}</div>
+                            <span class="text-[10px] font-bold truncate text-right text-white/80">${m.p2}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+    function openGroupModal(gi, mi) {
+        currentEdit = { gi, mi, type: 'group' };
+        const m = groups[gi].matches[mi];
+        showMatchModal(m.p1, m.p2, m.s1, m.s2, saveGroupScore);
+    }
+
+    function saveGroupScore() {
+        const { gi, mi } = currentEdit;
+        const s1 = parseInt(document.getElementById('ms1').value);
+        const s2 = parseInt(document.getElementById('ms2').value);
+        if (isNaN(s1) || isNaN(s2)) return;
+
+        let g = groups[gi];
+        g.matches[mi].s1 = s1;
+        g.matches[mi].s2 = s2;
+
+        // Reset stats
+        g.players.forEach(p => { p.pts = 0; p.win = 0; p.loss = 0; p.diff = 0; });
+        g.matches.forEach(m => {
+            if (m.s1 !== null) {
+                let p1 = g.players.find(x => x.name === m.p1), p2 = g.players.find(x => x.name === m.p2);
+                p1.diff += (m.s1 - m.s2); p2.diff += (m.s2 - m.s1);
+                if (m.s1 > m.s2) { p1.pts += 3; p1.win++; p2.loss++; }
+                else if (m.s2 > m.s1) { p2.pts += 3; p2.win++; p1.loss++; }
+                else { p1.pts += 1; p2.pts += 1; }
+            }
+        });
+        renderGroups(); closeModal(); playPingSound();syncToFirebase(); 
+    }
+
+function startKnockout() {
+    if (groups.length === 0) return showToast("Vui lòng nạp danh sách và chia bảng trước!", "error");
+    
+    showLoader("Đang phân tích điểm số của thí sinh...");
+    setTimeout(() => {
+        let quals = [];
+        // Lấy Top 2 mỗi bảng
+        groups.forEach(g => {
+            let s = [...g.players].sort((a,b) => b.pts - a.pts || b.diff - a.diff);
+            if(s[0]) quals.push(s[0]); 
+            if(s[1]) quals.push(s[1]);
+        });
+
+        const numQualifiers = quals.length;
+        if (numQualifiers < 2) return showToast("Không đủ đội để thi đấu Knockout", "error");
+
+        // CHUYỂN ĐỔI NEURAL: Tính toán quy mô sơ đồ (Power of 2)
+        // Ví dụ: có 6 người -> sơ đồ 8. Có 12 người -> sơ đồ 16.
+        let bracketSize = 2;
+        while (bracketSize < numQualifiers) {
+            bracketSize *= 2;
+        }
+
+        knockoutRounds = [];
+        
+        // VÒNG 1 (Vòng gửi xe / Vòng đầu)
+        let r1 = [];
+        let numMatchesInR1 = bracketSize / 2;
+        
+        for(let i = 0; i < numMatchesInR1; i++) {
+            r1.push({ 
+                id: `m-0-${i}`, 
+                p1: { name: quals[i*2] ? quals[i*2].name : "...", score: null }, 
+                p2: { name: quals[i*2+1] ? quals[i*2+1].name : "...", score: null }, 
+                winnerTo: { r: 1, m: Math.floor(i/2), slot: i % 2 === 0 ? 'p1' : 'p2' } 
+            });
+        }
+        knockoutRounds.push({ matches: r1 });
+
+        // TỰ ĐỘNG VẼ CÁC VÒNG TIẾP THEO CHO ĐẾN CHUNG KẾT
+        let currentMatchCount = numMatchesInR1 / 2;
+        while(currentMatchCount >= 1) {
+            let r = [];
+            for(let i = 0; i < currentMatchCount; i++) {
+                r.push({ 
+                    id: `m-${knockoutRounds.length}-${i}`, 
+                    p1: { name: "...", score: null }, 
+                    p2: { name: "...", score: null }, 
+                    winnerTo: currentMatchCount > 1 ? { r: knockoutRounds.length + 1, m: Math.floor(i/2), slot: i % 2 === 0 ? 'p1' : 'p2' } : null 
+                });
+            }
+            knockoutRounds.push({ matches: r });
+            currentMatchCount /= 2;
+        }
+
+        renderBracket();
+        updateKnockoutUI();
+        hideLoader();
+        syncToFirebase();
+    }, 1000);
+}
+
+function renderBracket() {
+    const root = document.getElementById('bracket-root');
+    const svg = document.getElementById('bracket-svg');
+    if(!root || !knockoutRounds.length) return;
+    
+    root.innerHTML = ''; 
+    root.appendChild(svg); 
+
+    // Tự động tính chiều cao dựa trên số trận vòng 1
+    // Mỗi trận cao khoảng 100px (card 64px + gap)
+    const firstRoundMatches = knockoutRounds[0].matches.length;
+    root.style.height = `${firstRoundMatches * 110 + 100}px`; 
+
+    knockoutRounds.forEach((roundObj, ri) => {
+        const col = document.createElement('div');
+        col.className = 'bracket-column';
+        const matches = roundObj.matches; 
+        
+        matches.forEach((m, mi) => {
+            const card = document.createElement('div');
+            card.className = 'knockout-card glass';
+            card.id = m.id;
+            card.onclick = () => openKnockoutModal(ri, mi);
+            card.innerHTML = `
+                <div class="k-player border-b border-white/5 ${m.p1.status==='win'?'win':''}">
+                    <span class="truncate px-2 font-bold">${m.p1.name}</span>
+                    <span class="text-indigo-400 px-2 font-black">${m.p1.score ?? '-'}</span>
+                </div>
+                <div class="k-player ${m.p2.status==='win'?'win':''}">
+                    <span class="truncate px-2 font-bold">${m.p2.name}</span>
+                    <span class="text-indigo-400 px-2 font-black">${m.p2.score ?? '-'}</span>
+                </div>
+            `;
+            col.appendChild(card);
+        });
+        root.appendChild(col);
+    });
+    
+    setTimeout(drawConnectors, 300); 
+}
+
+function drawConnectors() {
+    const svg = document.getElementById('bracket-svg');
+    const root = document.getElementById('bracket-root');
+    if (!svg || !root || !knockoutRounds.length) return;
+    svg.innerHTML = '';
+    svg.setAttribute('width', root.scrollWidth);
+    svg.setAttribute('height', root.scrollHeight);
+    const rootRect = root.getBoundingClientRect();
+
+    knockoutRounds.forEach((roundObj, ri) => {
+        if (ri === knockoutRounds.length - 1) return;
+        
+        const matches = roundObj.matches; // LẤY TỪ OBJECT
+        matches.forEach((m, mi) => {
+            const start = document.getElementById(m.id);
+            const end = document.getElementById(`m-${ri+1}-${Math.floor(mi/2)}`);
+            
+            if (start && end) {
+                const sR = start.getBoundingClientRect();
+                const eR = end.getBoundingClientRect();
+
+                // Tính toán tọa độ dựa trên vị trí tuyệt đối trong root (không phụ thuộc cuộn)
+                const x1 = (sR.right - rootRect.left);
+                const y1 = (sR.top + (sR.height / 2) - rootRect.top);
+                const x2 = (eR.left - rootRect.left);
+                const y2 = (eR.top + (eR.height / 2) - rootRect.top);
+
+                const midX = x1 + (x2 - x1) / 2;
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                
+                path.setAttribute("d", `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`);
+                path.setAttribute("fill", "none");
+                
+                // TĂNG ĐỘ ĐẬM VÀ ĐỘ SÁNG CHO MOBILE DỄ NHÌN
+                path.setAttribute("stroke", "rgba(99, 102, 241, 0.6)");
+                path.setAttribute("stroke-width", "2"); 
+                svg.appendChild(path);
+            }
+        });
+    });
+}
+
+function openKnockoutModal(ri, mi) {
+    currentEdit = { ri, mi, type: 'knockout' };
+    const m = knockoutRounds[ri].matches[mi]; // THÊM .matches
+    showMatchModal(m.p1.name, m.p2.name, m.p1.score, m.p2.score, saveKnockoutScore);
+}
+
+function saveKnockoutScore() {
+    const { ri, mi } = currentEdit;
+    const s1 = parseInt(document.getElementById('ms1').value), s2 = parseInt(document.getElementById('ms2').value);
+    if (isNaN(s1) || isNaN(s2)) return;
+
+    let m = knockoutRounds[ri].matches[mi]; // THÊM .matches
+        m.p1.score = s1; m.p2.score = s2;
+        m.p1.status = s1 > s2 ? 'win' : 'loss';
+        m.p2.status = s2 > s1 ? 'win' : 'loss';
+        if (m.winnerTo) {
+            let n = knockoutRounds[m.winnerTo.r][m.winnerTo.m];
+            n[m.winnerTo.slot].name = s1 > s2 ? m.p1.name : m.p2.name;
+        }
+        renderBracket(); closeModal(); playPingSound();syncToFirebase(); 
+    }
+
+    // --- UI HELPERS ---
+function showView(viewName) {
+    // Danh sách tất cả ID màn hình chính
+    const views = ['view-auth', 'view-dashboard', 'view-app'];
+    
+    views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+
+    const target = document.getElementById(`view-${viewName}`);
+    if (target) {
+        target.classList.remove('hidden');
+    }
+    
+    // Luôn ẩn radar loader khi chuyển xong màn hình
+    hideLoader(); 
+}
+
+function switchTab(t) {
+    const groupContent = document.getElementById('group-content');
+    const knockoutContent = document.getElementById('knockout-content');
+    const btnGroup = document.getElementById('tab-group');
+    const btnKnockout = document.getElementById('tab-knockout');
+
+    // Xác định content nào đang hiện, content nào cần ẩn
+    const outgoing = (t === 'group') ? knockoutContent : groupContent;
+    const incoming = (t === 'group') ? groupContent : knockoutContent;
+    const activeBtn = (t === 'group') ? btnGroup : btnKnockout;
+    const inactiveBtn = (t === 'group') ? btnKnockout : btnGroup;
+
+    // 1. Tắt hiệu ứng của Tab đang hiện
+    outgoing.classList.remove('active-animate');
+    
+    // 2. Chờ hiệu ứng mờ dần (khoảng 200ms) rồi mới ẩn hẳn
+    setTimeout(() => {
+        outgoing.style.display = 'none';
+        outgoing.classList.remove('active-show');
+
+        // 3. Chuẩn bị Tab mới
+        incoming.style.display = 'block';
+        incoming.classList.add('active-show');
+
+        // 4. Kích hoạt hiệu ứng mượt (dùng requestAnimationFrame để đảm bảo mượt tuyệt đối)
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                incoming.classList.add('active-animate');
+                
+                if (t === 'knockout') {
+                    updateKnockoutUI(); // THÊM DÒNG NÀY
+                    // Chờ lâu hơn một chút (300ms) để layout mobile đứng yên
+                    setTimeout(drawConnectors, 300);
+                }
+            }, 50);
+        });
+    }, 200);
+
+    // Cập nhật Style cho các nút bấm ngay lập tức
+    activeBtn.classList.add('tab-btn-active');
+    activeBtn.style.opacity = "1";
+    
+    inactiveBtn.classList.remove('tab-btn-active');
+    inactiveBtn.style.opacity = "0.4";
+}
+
+    function showMatchModal(n1, n2, s1, s2, cb) {
+        document.getElementById('modal-form').innerHTML = `
+            <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                <span class="text-[11px] font-black uppercase text-slate-300 truncate w-32">${n1}</span>
+                <input type="number" id="ms1" value="${s1??''}" class="w-16 h-12 text-center text-xl font-black rounded-xl">
+            </div>
+            <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                <span class="text-[11px] font-black uppercase text-slate-300 truncate w-32">${n2}</span>
+                <input type="number" id="ms2" value="${s2??''}" class="w-16 h-12 text-center text-xl font-black rounded-xl">
+            </div>`;
+        document.getElementById('btn-save-score').onclick = cb;
+        document.getElementById('modal-match').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('modal-match').classList.add('hidden'); }
+
+    function showLoader(text) {
+        document.getElementById('initial-loader').classList.remove('hidden');
+        document.getElementById('loader-text').innerText = text || "Đang xử lý...";
+    }
+
+    function hideLoader() {
+        document.getElementById('initial-loader').classList.add('hidden');
+    }
+
+function showToast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const color = type === 'success' ? 'emerald-500' : type === 'error' ? 'red-500' : 'indigo-500';
+    
+    // Thêm class 'cursor-pointer' để báo hiệu có thể nhấn
+    toast.className = `toast-item glass p-4 rounded-2xl border-l-4 border-${color} bg-${color}/10 backdrop-blur-xl cursor-pointer transition-all duration-300`;
+    toast.innerHTML = `
+        <div class="flex items-center justify-between gap-4">
+            <p class="text-xs font-black uppercase tracking-wider text-white">${msg}</p>
+            <i class="fa-solid fa-xmark text-[10px] opacity-50"></i>
+        </div>`;
+
+    // HÀM QUAN TRỌNG: Chạm vào là đóng ngay
+    toast.onclick = () => {
+        toast.style.transform = "translateX(120%)";
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    container.appendChild(toast);
+
+    // Tự động đóng sau 3 giây nếu không chạm
+    setTimeout(() => {
+        if (toast.parentNode) toast.onclick();
+    }, 3000);
+}
+
+    function playPingSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } catch(e) {}
+    }
+
+    window.onresize = drawConnectors;
+
+    // HÀM XÓA MỘT GIẢI ĐẤU
+function confirmDeleteSingle(id) {
+    showConfirm(
+        "XÓA DỮ LIỆU", 
+        "Bạn có chắc chắn muốn xóa giải đấu này không? Dữ liệu sẽ biến mất vĩnh viễn khỏi Cloud!", 
+        async () => {
+            try {
+                await db.collection("tournaments").doc(id).delete();
+                showToast("Đã xóa dữ liệu thành công", "success");
+                showHistory(); // Load lại danh sách lịch sử
+            } catch (e) {
+                showToast("Lỗi: " + e.message, "error");
+            }
+        }
+    );
+}
+
+// HÀM XÓA TẤT CẢ GIẢI ĐẤU
+async function confirmDeleteAll() {
+    if (confirm("CẢNH BÁO CỰC ĐỘ: Bạn có chắc chắn muốn XÓA TẤT CẢ lịch sử giải đấu? \nThao tác này không thể hoàn tác!")) {
+        showLoader("Đang dọn dẹp Neural Cloud...");
+        try {
+            const snapshot = await db.collection("tournaments")
+                .where("userId", "==", auth.currentUser.uid)
+                .get();
+
+            if (snapshot.empty) {
+                hideLoader();
+                return showToast("Không có gì để xóa!", "info");
+            }
+
+            // Sử dụng batch để xóa nhiều doc cùng lúc
+            const batch = db.batch();
+            snapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            showToast("Đã xóa sạch toàn bộ lịch sử", "success");
+            showHistory(); // Load lại danh sách (sẽ hiện trống)
+        } catch (e) {
+            showToast("Lỗi hệ thống: " + e.message, "error");
+        } finally {
+            hideLoader();
+        }
+    }
+}
+
+let confirmCallback = null;
+
+// Hàm hiển thị thông báo hiện đại
+function showConfirm(title, msg, callback) {
+    document.getElementById('confirm-title').innerText = title;
+    document.getElementById('confirm-msg').innerText = msg;
+    confirmCallback = callback;
+    document.getElementById('modal-confirm').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+    document.getElementById('modal-confirm').classList.add('hidden');
+    confirmCallback = null;
+}
+
+// Lắng nghe nút bấm xác nhận trên Modal
+document.getElementById('btn-confirm-action').onclick = () => {
+    if (confirmCallback) confirmCallback();
+    closeConfirmModal();
+};
+
+// CẬP NHẬT HÀM XÓA ĐƠN LẺ
+function confirmDeleteSingle(id) {
+    showConfirm(
+        "XÓA DỮ LIỆU", 
+        "Bạn có chắc chắn muốn xóa giải đấu này không? Dữ liệu sẽ biến mất vĩnh viễn khỏi Cloud!", 
+        async () => {
+            try {
+                await db.collection("tournaments").doc(id).delete();
+                showToast("Đã xóa dữ liệu thành công", "success");
+                showHistory();
+            } catch (e) {
+                showToast("Lỗi: " + e.message, "error");
+            }
+        }
+    );
+}
+
+// CẬP NHẬT HÀM XÓA TẤT CẢ
+function confirmDeleteAll() {
+    showConfirm(
+        "CẢNH BÁO CỰC ĐỘ", 
+        "Hệ thống sẽ dọn sạch toàn bộ lịch sử thi đấu của bạn. Thao tác này KHÔNG THỂ HOÀN TÁC!", 
+        async () => {
+            showLoader("Đang Format dữ liệu Cloud...");
+            try {
+                const snapshot = await db.collection("tournaments")
+                    .where("userId", "==", auth.currentUser.uid)
+                    .get();
+
+                const batch = db.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                
+                showToast("Đã xóa sạch lịch sử!", "success");
+                showHistory();
+            } catch (e) {
+                showToast("Lỗi hệ thống: " + e.message, "error");
+            } finally {
+                hideLoader();
+            }
+        }
+    );
+}
+
+function updateKnockoutUI() {
+    const initContainer = document.getElementById('knockout-init-container');
+    const bracketView = document.getElementById('bracket-view-container');
+    const btn = document.getElementById('btn-main-knockout');
+
+    // 1. Nếu đã có dữ liệu Knockout rồi thì hiện sơ đồ, ẩn nút
+    if (knockoutRounds && knockoutRounds.length > 0) {
+        initContainer.classList.add('hidden');
+        bracketView.classList.remove('hidden');
+    } else {
+        // 2. Nếu chưa có, tính toán số lượng đội sẽ đi tiếp
+        initContainer.classList.remove('hidden');
+        bracketView.classList.add('hidden');
+
+        let qualifierCount = groups.length * 2; // Top 2 mỗi bảng
+        if (qualifierCount === 0) {
+            btn.innerText = "⚡ CHƯA CÓ DANH SÁCH THI ĐẤU";
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+        } else {
+            btn.innerText = `⚡ XÁC ĐỊNH ${qualifierCount} THÍ SINH QUYẾT ĐẤU TRANH GIẢI`;
+            btn.disabled = false;
+            btn.style.opacity = "1";
+        }
+    }
+}
+
+function resetToDashboard() {
+    // 1. Xóa sạch dữ liệu trong bộ nhớ (biến toàn cục)
+    players = [];
+    groups = [];
+    knockoutRounds = [];
+    currentTourneyId = null;
+    currentFileName = "";
+    currentEdit = null;
+
+    // 2. Dọn dẹp giao diện thi đấu
+    const groupGrid = document.getElementById('group-grid');
+    if (groupGrid) groupGrid.innerHTML = '';
+
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.classList.remove('hidden');
+
+    const bracketRoot = document.getElementById('bracket-root');
+    if (bracketRoot) bracketRoot.innerHTML = '<svg id="bracket-svg"></svg>';
+
+    // 3. Đưa Tab về mặc định (Vòng Bảng)
+    switchTab('group');
+
+    // 4. Chuyển màn hình về Dashboard
+    showView('dashboard');
+
+    // 5. Thông báo nhẹ cho người dùng
+    showToast("Hệ thống đã được làm mới", "info");
+}
+
+// ============================================================
+// HỆ THỐNG LẮNG NGHE PHÍM ENTER TOÀN CỤC
+// ============================================================
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        // 1. Nếu đang ở màn hình Đăng nhập/Đăng ký
+        const authView = document.getElementById('view-auth');
+        if (authView && !authView.classList.contains('hidden')) {
+            event.preventDefault();
+            handleAuth();
+            return;
+        }
+
+        // 2. Nếu đang mở Modal cập nhật tỉ số
+        const matchModal = document.getElementById('modal-match');
+        if (matchModal && !matchModal.classList.contains('hidden')) {
+            event.preventDefault();
+            // Tự động kích hoạt nút bấm "Xác nhận" của modal
+            document.getElementById('btn-save-score').click();
+            return;
+        }
+        
+        // 3. Nếu đang mở Modal xác nhận xóa
+        const confirmModal = document.getElementById('modal-confirm');
+        if (confirmModal && !confirmModal.classList.contains('hidden')) {
+            event.preventDefault();
+            document.getElementById('btn-confirm-action').click();
+            return;
+        }
+    }
+});
+
+</script>
+
+</body>
+
+    <!-- THANH BĂNG CỐ ĐỊNH DƯỚI ĐÁY MÀN HÌNH -->
+<div class="fixed bottom-0 left-0 right-0 bg-[#030712]/95 backdrop-blur-md border-t border-white/5 py-2.5 z-[100]">
+    <p class="text-[9px] text-slate-500 uppercase tracking-[2px] text-center flex items-center justify-center gap-2">
+        <span>© 2026</span> 
+        <span class="w-[1px] h-2 bg-white/10"></span> 
+        <span>Thiết kế bởi <b class="text-indigo-400 font-extrabold">Cao Nguyễn Hồng Phi</b></span>
+    </p>
+</div>
+</html>
