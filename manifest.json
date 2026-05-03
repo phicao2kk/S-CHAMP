@@ -1,0 +1,22 @@
+{
+  "name": "S-CHAMP Digital Tournament System",
+  "short_name": "S-CHAMP",
+  "description": "Hệ thống quản lý và chia bảng giải đấu chuyên nghiệp",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/8LjCY7sy/S-CHAMP.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.ibb.co/8LjCY7sy/S-CHAMP.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
