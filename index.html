@@ -1,6 +1,37 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <!-- Đăng ký Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <script>
+    // Đăng ký Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('S-CHAMP PWA: Đã kích hoạt hệ thống mượt mà!'))
+            .catch(err => console.log('Lỗi đăng ký SW', err));
+        });
+    }
+    </script>
+
+<!-- 1. Icon cho iPhone/iPad (iOS) -->
+    <link rel="apple-touch-icon" href="https://i.ibb.co/8LjCY7sy/S-CHAMP.png">
+
+    <!-- 2. Icon cho Android/Chrome -->
+    <link rel="icon" type="image/png" href="https://i.ibb.co/8LjCY7sy/S-CHAMP.png">
+
+    <!-- 3. Tên hiển thị dưới Icon trên màn hình chính -->
+    <meta name="apple-mobile-web-app-title" content="S-CHAMP">
+
+    <!-- 4. Chế độ chạy như App (Ẩn thanh địa chỉ trình duyệt) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- 5. Màu sắc thanh trạng thái trên Mobile -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#020617">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>S-CHAMP • Digital Tournament System</title>
