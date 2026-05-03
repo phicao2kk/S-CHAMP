@@ -33,7 +33,7 @@
     <meta name="theme-color" content="#020617">
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S-CHAMP • Digital Tournament System</title>
     
     <!-- Libraries -->
@@ -529,6 +529,24 @@ button[onclick*="confirmDelete"]:hover {
     let players = [], groups = [], knockoutRounds = [], currentEdit = null, isLoginMode = true;
     let currentFileName = "";
 
+    // Chặn F12 và tổ hợp phím kiểm tra phần tử
+document.addEventListener('keydown', function(e) {
+    // 123 là phím F12
+    if (e.key === "F12" || e.keyCode === 123 || 
+        // Ctrl + Shift + I (Inspect)
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) ||
+        // Ctrl + Shift + J (Console)
+        (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) ||
+        // Ctrl + U (View Source)
+        (e.ctrlKey && (e.key === 'u' || e.keyCode === 85))) {
+        
+        window.location.href = "about:blank";
+        e.preventDefault();
+    }
+});
+
+// Chặn chuột phải (Tùy chọn thêm để tăng bảo mật)
+document.addEventListener('contextmenu', e => e.preventDefault());
     
     // --- AUTH LOGIC ---
 // Khởi tạo Firestore Database
@@ -1038,19 +1056,51 @@ function openKnockoutModal(ri, mi) {
 
 function saveKnockoutScore() {
     const { ri, mi } = currentEdit;
-    const s1 = parseInt(document.getElementById('ms1').value), s2 = parseInt(document.getElementById('ms2').value);
-    if (isNaN(s1) || isNaN(s2)) return;
+    const s1 = parseInt(document.getElementById('ms1').value);
+    const s2 = parseInt(document.getElementById('ms2').value);
 
-    let m = knockoutRounds[ri].matches[mi]; // THÊM .matches
-        m.p1.score = s1; m.p2.score = s2;
-        m.p1.status = s1 > s2 ? 'win' : 'loss';
-        m.p2.status = s2 > s1 ? 'win' : 'loss';
-        if (m.winnerTo) {
-            let n = knockoutRounds[m.winnerTo.r][m.winnerTo.m];
-            n[m.winnerTo.slot].name = s1 > s2 ? m.p1.name : m.p2.name;
-        }
-        renderBracket(); closeModal(); playPingSound();syncToFirebase(); 
+    // 1. Kiểm tra tính hợp lệ
+    if (isNaN(s1) || isNaN(s2)) {
+        showToast("Vui lòng nhập đầy đủ tỉ số!", "error");
+        return;
     }
+
+    // 2. Kiểm tra tỉ số hòa (Vòng Knockout không được hòa)
+    if (s1 === s2) {
+        showToast("Vòng quyết đấu cần có người thắng!", "error");
+        return;
+    }
+
+    // 3. Cập nhật dữ liệu trận đấu hiện tại
+    let m = knockoutRounds[ri].matches[mi];
+    m.p1.score = s1;
+    m.p2.score = s2;
+    m.p1.status = s1 > s2 ? 'win' : 'loss';
+    m.p2.status = s2 > s1 ? 'win' : 'loss';
+
+    // 4. Logic tiến vào vòng trong (Winner To)
+    if (m.winnerTo) {
+        let nextMatch = knockoutRounds[m.winnerTo.r].matches[m.winnerTo.m];
+        nextMatch[m.winnerTo.slot].name = s1 > s2 ? m.p1.name : m.p2.name;
+    }
+
+    // 5. Hiệu ứng ăn mừng nếu là trận CHUNG KẾT (Trận cuối cùng của vòng cuối cùng)
+    if (ri === knockoutRounds.length - 1) {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#6366f1', '#a855f7', '#ffffff']
+        });
+        showToast("CHÚC MỪNG NHÀ VÔ ĐỊCH!", "success");
+    }
+
+    // 6. Cập nhật giao diện và đồng bộ Cloud
+    renderBracket(); 
+    closeModal(); 
+    playPingSound();
+    syncToFirebase(); 
+}
 
     // --- UI HELPERS ---
 function showView(viewName) {
