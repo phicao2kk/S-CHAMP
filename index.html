@@ -690,8 +690,8 @@ function closeHistory() { document.getElementById('modal-history').classList.add
 
     function toggleAuthMode() {
         isLoginMode = !isLoginMode;
-        document.getElementById('auth-subtitle').innerText = isLoginMode ? "HỆ THỐNG TRUY CẬP" : "ĐĂNG KÝ THÀNH VIÊN";
-        document.getElementById('btn-auth-text').innerText = isLoginMode ? "Đăng nhập ngay" : "Đăng ký tài khoản";
+        document.getElementById('auth-subtitle').innerText = isLoginMode ? "HỆ THỐNG TRUY CẬP" : "ĐĂNG KÝ TÀI KHOẢN";
+        document.getElementById('btn-auth-text').innerText = isLoginMode ? "Đăng nhập ngay" : "Đăng ký ngay";
         document.getElementById('btn-toggle-auth').innerHTML = isLoginMode ? "Chưa có tài khoản? <span class='text-indigo-400'>Đăng ký</span>" : "Đã có tài khoản? <span class='text-indigo-400'>Đăng nhập</span>";
         document.getElementById('confirm-password-container').classList.toggle('show', !isLoginMode);
     }
