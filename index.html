@@ -82,8 +82,43 @@
         /* AUTH UI EFFECTS */
         #confirm-password-container { max-height: 0; opacity: 0; overflow: hidden; transition: all 0.4s ease; }
         #confirm-password-container.show { max-height: 150px; opacity: 1; margin-top: 1rem; }
-        .dot-signal { width: 6px; height: 6px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; transition: 0.3s; }
-        .field-container:focus-within .dot-signal { background-color: #22d3ee; box-shadow: 0 0 10px #22d3ee; transform: scale(1.3); }
+       /* Chấm tín hiệu - Đã thu nhỏ */
+        .dot-signal {
+            width: 6px; /* Giảm từ 8px */
+            height: 6px; /* Giảm từ 8px */
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            position: relative;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            margin: 4px 6px; /* Giảm margin để không chiếm diện tích dọc */
+        }
+
+        /* Hào quang (Aura) - Đã thu nhỏ */
+        .dot-signal::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px; /* Giảm từ 30px */
+            height: 18px; /* Giảm từ 30px */
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.4) 0%, rgba(34, 211, 238, 0) 75%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* Khi Focus - Chấm sáng lên và hiện hào quang tròn trịa */
+        .field-container:focus-within .dot-signal {
+            background-color: #22d3ee;
+            box-shadow: 0 0 10px #22d3ee; /* Chấm nhỏ sáng sắc nét */
+        }
+
+        .field-container:focus-within .dot-signal::before {
+            opacity: 1; /* Hào quang tỏa ra cực mịn */
+        }
 
         /* TOAST */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; }
@@ -384,28 +419,55 @@ button[onclick*="confirmDelete"]:hover {
         </div>
 
         <div class="space-y-5 pt-4">
-            <div class="field-container space-y-1.5">
-                <div class="flex items-center gap-2 ml-2">
-                    <div class="dot-signal"></div>
-                    <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Tài khoản</label>
-                </div>
-                <input type="text" id="auth-email" placeholder="Email hoặc SĐT" class="w-full p-4 rounded-2xl">
-            </div>
+            <!-- PHẦN TÀI KHOẢN -->
+<div class="field-container space-y-1.5">
+    <div class="flex items-center gap-2 ml-1 py-1">
+        <div class="dot-signal"></div>
+        <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Tài khoản</label>
+    </div>
+    <input type="text" id="auth-email" placeholder="Email hoặc SĐT" class="w-full p-4 rounded-2xl">
+</div>
 
-            <div class="field-container space-y-1.5">
-                <div class="flex items-center gap-2 ml-2">
-                    <div class="dot-signal"></div>
-                    <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Mật khẩu</label>
-                </div>
-                <input type="password" id="auth-pass" placeholder="••••••••" class="w-full p-4 rounded-2xl">
-            </div>
+<!-- PHẦN MẬT KHẨU -->
+<div class="field-container space-y-1.5">
+    <div class="flex items-center gap-2 ml-1 py-1">
+        <div class="dot-signal"></div>
+        <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Mật khẩu</label>
+    </div>
+    <div class="relative">
+        <input type="password" id="auth-pass" placeholder="••••••••" class="w-full p-4 rounded-2xl pr-12">
+        <button type="button" onclick="togglePassVisibility('auth-pass', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+            <i class="fa-solid fa-eye text-sm"></i>
+        </button>
+    </div>
+</div>
 
+<!-- PHẦN XÁC NHẬN MẬT KHẨU -->
+<div id="confirm-password-container" class="field-container space-y-1.5">
+    <div class="flex items-center gap-2 ml-1 py-1">
+        <div class="dot-signal"></div>
+        <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Xác nhận mật khẩu</label>
+    </div>
+    <div class="relative">
+        <input type="password" id="auth-confirm" placeholder="••••••••" class="w-full p-4 rounded-2xl pr-12">
+        <button type="button" onclick="togglePassVisibility('auth-confirm', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+            <i class="fa-solid fa-eye text-sm"></i>
+        </button>
+    </div>
+</div>
+
+            <!-- PHẦN XÁC NHẬN MẬT KHẨU -->
             <div id="confirm-password-container" class="field-container space-y-1.5">
-                <div class="flex items-center gap-2 ml-2">
+                <div class="flex items-center gap-3 ml-3 mb-1"> <!-- Đồng bộ y hệt bên trên -->
                     <div class="dot-signal"></div>
                     <label class="text-[10px] text-blue-400 uppercase font-bold tracking-widest">Xác nhận mật khẩu</label>
                 </div>
-                <input type="password" id="auth-confirm" placeholder="••••••••" class="w-full p-4 rounded-2xl">
+                <div class="relative">
+                    <input type="password" id="auth-confirm" placeholder="••••••••" class="w-full p-4 rounded-2xl pr-12">
+                    <button type="button" onclick="togglePassVisibility('auth-confirm', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+                        <i class="fa-solid fa-eye text-sm"></i>
+                    </button>
+                </div>
             </div>
 
             <button onclick="handleAuth()" class="btn-glow w-full py-4 rounded-2xl mt-4">
@@ -1414,16 +1476,32 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
+// Hàm chuyển đổi ẩn/hiện mật khẩu
+function togglePassVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+        icon.classList.add('text-indigo-400'); // Làm icon sáng lên khi đang hiện chữ
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+        icon.classList.remove('text-indigo-400');
+    }
+}
+
 </script>
 
-    <!-- Footer nội bộ của Dashboard -->
-    <div class="absolute bottom-4 left-0 right-0 text-center z-20">
-        <p class="text-[9px] text-slate-500 uppercase tracking-[2px] flex items-center justify-center gap-2">
-            <span>© 2026</span> 
-            <span class="w-[1px] h-2 bg-white/10"></span> 
-            <span>Thiết kế bởi <b class="text-indigo-400 font-extrabold">Cao Nguyễn Hồng Phi</b></span>
-        </p>
-    </div>
-    
+    <!-- THANH BĂNG CỐ ĐỊNH DƯỚI ĐÁY MÀN HÌNH -->
+<div class="fixed bottom-0 left-0 right-0 bg-[#030712]/95 backdrop-blur-md border-t border-white/5 py-2.5 z-[100]">
+    <p class="text-[9px] text-slate-500 uppercase tracking-[2px] text-center flex items-center justify-center gap-2">
+        <span>© 2026</span> 
+        <span class="w-[1px] h-2 bg-white/10"></span> 
+        <span>Thiết kế bởi <b class="text-indigo-400 font-extrabold">Cao Nguyễn Hồng Phi</b></span>
+    </p>
+</div>
+
 </body>
 </html>
