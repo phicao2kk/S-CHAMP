@@ -406,19 +406,26 @@ button[onclick*="confirmDelete"]:hover {
     </div>
 </div>
 
-<!-- AUTH VIEW -->
-<div id="view-auth" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-center p-4">
-    <div class="text-center mb-8">
-        <img src="https://i.ibb.co/8LjCY7sy/S-CHAMP.png" class="w-20 h-20 mx-auto rounded-2xl shadow-2xl mb-4 border border-white/20">
-        <h1 class="text-3xl font-black uppercase tracking-tighter italic text-white">QUẢN LÝ GIẢI ĐẤU</h1>
+<!-- AUTH VIEW - ĐÃ FIX LỖI TRÀN CHỮ VÀ DÃN MÀN HÌNH MOBILE -->
+<div id="view-auth" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-start md:justify-center p-4 overflow-y-auto">
+    <!-- Header: Thu nhỏ và giảm margin để tiết kiệm diện tích -->
+    <div class="text-center mt-8 mb-6 md:mt-0 md:mb-8 flex-shrink-0">
+        <img src="https://i.ibb.co/8LjCY7sy/S-CHAMP.png" class="w-16 h-16 md:w-20 md:h-20 mx-auto rounded-2xl shadow-2xl mb-3 border border-white/20">
+        <h1 class="text-2xl md:text-3xl font-black uppercase tracking-tighter italic text-white whitespace-nowrap">
+            QUẢN LÝ GIẢI ĐẤU
+        </h1>
     </div>
 
-    <div class="glass max-w-[400px] w-full p-10 rounded-[2.5rem] relative">
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-1.5 rounded-full border border-white/20">
-            <span id="auth-subtitle" class="text-[10px] text-white font-black uppercase tracking-widest">HỆ THỐNG TRUY CẬP</span>
+    <!-- Khung đăng nhập: Giảm padding p-10 xuống p-6 trên mobile -->
+    <div class="glass max-w-[380px] w-full p-6 md:p-10 rounded-[2.5rem] relative mb-10 flex-shrink-0">
+        <!-- Badge tiêu đề: Chống nhảy chữ -->
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 px-5 py-1.5 rounded-full border border-white/20 shadow-xl z-10">
+            <span id="auth-subtitle" class="text-[9px] md:text-[10px] text-white font-black uppercase tracking-widest whitespace-nowrap">
+                HỆ THỐNG TRUY CẬP
+            </span>
         </div>
 
-        <div class="space-y-5 pt-4">
+        <div class="space-y-4 md:space-y-5 pt-4">
             <!-- PHẦN TÀI KHOẢN -->
 <div class="field-container space-y-1.5">
     <div class="flex items-center gap-2 ml-1 py-1">
