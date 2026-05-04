@@ -8,9 +8,11 @@
     // Đăng ký Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('S-CHAMP PWA: Đã kích hoạt hệ thống mượt mà!'))
-            .catch(err => console.log('Lỗi đăng ký SW', err));
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.unregister(); // Lệnh này sẽ ép trình duyệt xóa bỏ cache cũ
+                }
+            });
         });
     }
     </script>
@@ -279,43 +281,55 @@ button[onclick*="confirmDelete"]:hover {
 </head>
 <body>
 
-<!-- MÀN HÌNH DASHBOARD CHÍNH - ĐÃ KHOÁ CỨNG VÀ TỐI ƯU VỊ TRÍ -->
-<div id="view-dashboard" class="hidden h-screen w-full overflow-hidden flex flex-col p-6 md:p-10 relative">
+<!-- MÀN HÌNH DASHBOARD: ĐÃ SỬA LỖI ĐÓNG THẺ VÀ CLICK -->
+<div id="view-dashboard" class="hidden h-[100dvh] w-full overflow-hidden flex flex-col relative bg-[#030712]">
     
-    <!-- Header: Giữ nguyên ở trên cùng -->
-    <div class="flex justify-between items-center mb-4 z-10">
+    <!-- Header -->
+    <div class="flex-none p-6 md:p-10 flex justify-between items-center z-20">
         <div>
-            <h1 class="text-3xl md:text-4xl font-black italic uppercase">S-CHAMP</h1>
-            <p class="text-indigo-400 font-bold tracking-widest text-[10px] md:text-xs uppercase">Trung tâm điều hành giải đấu</p>
+            <h1 class="text-3xl md:text-4xl font-black italic uppercase leading-none">S-CHAMP</h1>
+            <p class="text-indigo-400 font-bold tracking-widest text-[10px] md:text-xs uppercase mt-1">Trung tâm điều hành giải đấu</p>
         </div>
-        <button id="btn-logout-dashboard" onclick="handleLogout()" class="text-red-500 font-black text-[10px] border border-red-500/20 px-4 md:px-6 py-2 rounded-full hover:bg-red-500/10 uppercase tracking-widest transition-all active:scale-95">THOÁT</button>
+        <button id="btn-logout-dashboard" onclick="handleLogout()" class="text-red-500 font-black text-[10px] border border-red-500/20 px-4 py-2 rounded-full hover:bg-red-500/10 uppercase active:scale-95 transition-all">THOÁT</button>
     </div>
 
-    <!-- Vùng chứa 2 Button: Sử dụng pt-12 trên mobile để đẩy lên cao, md:pt-0 để về giữa trên PC -->
-    <div class="flex-1 flex items-start md:items-center justify-center w-full pt-12 md:pt-0">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl w-full">
+    <!-- Nội dung chính -->
+    <div class="flex-1 flex items-center justify-center px-6 pb-20 z-20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl w-full -mt-10 md:mt-0">
             
             <!-- Nút Tạo Giải Mới -->
-            <div onclick="document.getElementById('excel-input').click()" class="glass p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] text-center hover:border-indigo-500 transition-all cursor-pointer group">
-                <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+            <div onclick="document.getElementById('excel-input').click()" class="glass p-8 md:p-10 rounded-[2.5rem] text-center hover:border-indigo-500 transition-all cursor-pointer group active:scale-95">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform pointer-events-none">
                     <i class="fa-solid fa-plus text-2xl md:text-3xl text-indigo-400"></i>
                 </div>
-                <h3 class="text-lg md:text-xl font-black uppercase">Tạo Giải Đấu Mới</h3>
-                <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-medium">Nạp file Excel chia bảng Neural</p>
+                <h3 class="text-lg md:text-xl font-black uppercase pointer-events-none">Tạo Giải Đấu Mới</h3>
+                <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-medium italic pointer-events-none">Nạp file Excel chia bảng Neural</p>
             </div>
 
             <!-- Nút Lịch Sử -->
-            <div onclick="showHistory()" class="glass p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] text-center hover:border-purple-500 transition-all cursor-pointer group">
-                <div class="w-16 h-16 md:w-20 md:h-20 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+            <div onclick="showHistory()" class="glass p-8 md:p-10 rounded-[2.5rem] text-center hover:border-purple-500 transition-all cursor-pointer group active:scale-95">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform pointer-events-none">
                     <i class="fa-solid fa-clock-rotate-left text-2xl md:text-3xl text-purple-400"></i>
                 </div>
-                <h3 class="text-lg md:text-xl font-black uppercase">Lịch Sử Giải Đấu</h3>
-                <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-medium italic">Xem lại các bảng đấu đã lưu</p>
+                <h3 class="text-lg md:text-xl font-black uppercase pointer-events-none">Lịch Sử Giải Đấu</h3>
+                <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-medium italic pointer-events-none">Xem lại các bảng đấu đã lưu</p>
             </div>
 
         </div>
     </div>
-</div>
+
+    <!-- Footer nội bộ của Dashboard -->
+    <div class="flex-none pb-10 md:pb-6 text-center z-20">
+        <p class="text-[9px] text-slate-500 uppercase tracking-[2px] flex items-center justify-center gap-2">
+            <span>© 2026</span> 
+            <span class="w-[1px] h-2 bg-white/10"></span> 
+            <span>Thiết kế bởi <b class="text-indigo-400 font-extrabold">Cao Nguyễn Hồng Phi</b></span>
+        </p>
+    </div>
+</div> <!-- ĐÓNG THẺ VIEW-DASHBOARD TẠI ĐÂY -->
+
+        <!-- THẺ INPUT ẨN DUY NHẤT (QUAN TRỌNG) -->
+    <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="importExcel(event)">
 
 <div class="mesh-bg"></div>
 
@@ -416,8 +430,6 @@ button[onclick*="confirmDelete"]:hover {
 
 <!-- MAIN APP VIEW -->
 <div id="view-app" class="hidden min-h-screen flex flex-col">
-    <!-- THẺ INPUT ẨN DUY NHẤT (QUAN TRỌNG) -->
-    <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="importExcel(event)">
 
     <nav class="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-white/5 backdrop-blur-2xl bg-[#030712]/80 sticky top-0 z-[100]">
         <div class="flex items-center gap-4">
@@ -1414,13 +1426,4 @@ document.addEventListener('keydown', function(event) {
 </script>
 
 </body>
-
-    <!-- THANH BĂNG CỐ ĐỊNH DƯỚI ĐÁY MÀN HÌNH -->
-<div class="fixed bottom-0 left-0 right-0 bg-[#030712]/95 backdrop-blur-md border-t border-white/5 py-2.5 z-[100]">
-    <p class="text-[9px] text-slate-500 uppercase tracking-[2px] text-center flex items-center justify-center gap-2">
-        <span>© 2026</span> 
-        <span class="w-[1px] h-2 bg-white/10"></span> 
-        <span>Thiết kế bởi <b class="text-indigo-400 font-extrabold">Cao Nguyễn Hồng Phi</b></span>
-    </p>
-</div>
 </html>
