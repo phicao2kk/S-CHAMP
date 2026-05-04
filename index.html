@@ -406,26 +406,27 @@ button[onclick*="confirmDelete"]:hover {
     </div>
 </div>
 
-<!-- AUTH VIEW - ĐÃ FIX LỖI TRÀN CHỮ VÀ DÃN MÀN HÌNH MOBILE -->
-<div id="view-auth" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-start md:justify-center p-4 overflow-y-auto">
-    <!-- Header: Thu nhỏ và giảm margin để tiết kiệm diện tích -->
-    <div class="text-center mt-8 mb-6 md:mt-0 md:mb-8 flex-shrink-0">
-        <img src="https://i.ibb.co/8LjCY7sy/S-CHAMP.png" class="w-16 h-16 md:w-20 md:h-20 mx-auto rounded-2xl shadow-2xl mb-3 border border-white/20">
+<!-- AUTH VIEW - ĐÃ CÂN BẰNG TỈ LỆ VÀNG -->
+<div id="view-auth" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-center p-6 overflow-y-auto bg-[#030712]/50">
+    
+    <!-- Header: Thu nhỏ logo và tiêu đề để không chiếm không gian -->
+    <div class="text-center mb-6 flex-shrink-0 animate-fadeIn">
+        <img src="https://i.ibb.co/8LjCY7sy/S-CHAMP.png" class="w-16 h-16 mx-auto rounded-2xl shadow-2xl mb-3 border border-white/10">
         <h1 class="text-2xl md:text-3xl font-black uppercase tracking-tighter italic text-white whitespace-nowrap">
             QUẢN LÝ GIẢI ĐẤU
         </h1>
     </div>
 
-    <!-- Khung đăng nhập: Giảm padding p-10 xuống p-6 trên mobile -->
-    <div class="glass max-w-[380px] w-full p-6 md:p-10 rounded-[2.5rem] relative mb-10 flex-shrink-0">
-        <!-- Badge tiêu đề: Chống nhảy chữ -->
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 px-5 py-1.5 rounded-full border border-white/20 shadow-xl z-10">
+    <!-- Khung đăng nhập: Căn giữa hoàn hảo -->
+    <div class="glass max-w-[360px] w-full p-6 md:p-8 rounded-[2.5rem] relative flex-shrink-0 shadow-2xl">
+        <!-- Badge tiêu đề -->
+        <div id="auth-badge-wrapper" class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 px-5 py-1.5 rounded-full border border-white/20 shadow-lg z-10 transition-colors duration-500">
             <span id="auth-subtitle" class="text-[9px] md:text-[10px] text-white font-black uppercase tracking-widest whitespace-nowrap">
                 HỆ THỐNG TRUY CẬP
             </span>
         </div>
 
-        <div class="space-y-4 md:space-y-5 pt-4">
+        <div class="space-y-4 pt-2">
             <!-- PHẦN TÀI KHOẢN -->
 <div class="field-container space-y-1.5">
     <div class="flex items-center gap-2 ml-1 py-1">
@@ -481,8 +482,8 @@ button[onclick*="confirmDelete"]:hover {
                 <span id="btn-auth-text">Đăng nhập ngay</span>
             </button>
 
-            <button onclick="toggleAuthMode()" id="btn-toggle-auth" class="w-full text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-2">
-                Chưa có tài khoản? <span class="text-indigo-400 underline">Đăng ký</span>
+            <button onclick="toggleAuthMode()" id="btn-toggle-auth" class="w-full text-[9px] text-slate-400 uppercase font-bold tracking-widest mt-2 hover:text-white transition-colors">
+                Chưa có tài khoản? <span class="text-emerald-400 underline decoration-emerald-500/30 underline-offset-4">Đăng ký</span>
             </button>
         </div>
     </div>
@@ -752,13 +753,37 @@ function closeHistory() { document.getElementById('modal-history').classList.add
         }
     }
 
-    function toggleAuthMode() {
-        isLoginMode = !isLoginMode;
-        document.getElementById('auth-subtitle').innerText = isLoginMode ? "HỆ THỐNG TRUY CẬP" : "ĐĂNG KÝ TÀI KHOẢN";
-        document.getElementById('btn-auth-text').innerText = isLoginMode ? "Đăng nhập ngay" : "Đăng ký ngay";
-        document.getElementById('btn-toggle-auth').innerHTML = isLoginMode ? "Chưa có tài khoản? <span class='text-indigo-400'>Đăng ký</span>" : "Đã có tài khoản? <span class='text-indigo-400'>Đăng nhập</span>";
-        document.getElementById('confirm-password-container').classList.toggle('show', !isLoginMode);
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    
+    const badgeWrapper = document.getElementById('auth-badge-wrapper');
+    const authSubtitle = document.getElementById('auth-subtitle');
+    const btnAuthText = document.getElementById('btn-auth-text');
+    const btnToggleAuth = document.getElementById('btn-toggle-auth');
+    const confirmContainer = document.getElementById('confirm-password-container');
+
+    if (isLoginMode) {
+        // CHẾ ĐỘ ĐĂNG NHẬP: Badge màu Tím (Indigo), Link Đăng ký màu Xanh lá (Emerald)
+        if(badgeWrapper) badgeWrapper.classList.replace('bg-emerald-600', 'bg-indigo-600');
+        authSubtitle.innerText = "HỆ THỐNG TRUY CẬP";
+        btnAuthText.innerText = "Đăng nhập ngay";
+        
+        // GIỮ MÀU XANH LÁ CHO CHỮ ĐĂNG KÝ TẠI ĐÂY
+        btnToggleAuth.innerHTML = "Chưa có tài khoản? <span class='text-emerald-400 underline decoration-emerald-500/30 underline-offset-4'>Đăng ký</span>";
+        
+        confirmContainer.classList.remove('show');
+    } else {
+        // CHẾ ĐỘ ĐĂNG KÝ: Badge màu Xanh lá (Emerald), Link Đăng nhập màu Tím (Indigo)
+        if(badgeWrapper) badgeWrapper.classList.replace('bg-indigo-600', 'bg-emerald-600');
+        authSubtitle.innerText = "ĐĂNG KÝ TÀI KHOẢN";
+        btnAuthText.innerText = "Tạo tài khoản mới";
+        
+        // LINK ĐĂNG NHẬP SẼ HIỆN MÀU TÍM ĐỂ PHÂN BIỆT
+        btnToggleAuth.innerHTML = "Đã có tài khoản? <span class='text-indigo-400 underline decoration-indigo-500/30 underline-offset-4'>Đăng nhập</span>";
+        
+        confirmContainer.classList.add('show');
     }
+}
 
     function handleLogout() { auth.signOut(); }
 
