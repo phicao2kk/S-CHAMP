@@ -353,37 +353,6 @@ button[onclick*="confirmDelete"]:hover {
     </div>
 </div>
 
-<!-- MÀN HÌNH DASHBOARD CHÍNH -->
-<div id="view-dashboard" class="hidden min-h-screen flex flex-col p-10">
-    <div class="flex justify-between items-center mb-12">
-        <div>
-            <h1 class="text-4xl font-black italic uppercase">BẢNG ĐIỀU KHIỂN</h1>
-            <p class="text-indigo-400 font-bold tracking-widest text-xs uppercase">Trung tâm điều hành S-CHAMP</p>
-        </div>
-        <button onclick="handleLogout()" class="text-red-500 font-bold text-xs border border-red-500/20 px-6 py-2 rounded-full hover:bg-red-500/10">ĐĂNG XUẤT</button>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
-        <!-- Nút Tạo Giải Mới -->
-        <div onclick="document.getElementById('excel-input').click()" class="glass p-10 rounded-[3rem] text-center hover:border-indigo-500 transition-all cursor-pointer group">
-            <div class="w-20 h-20 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-plus text-3xl text-indigo-400"></i>
-            </div>
-            <h3 class="text-xl font-black uppercase">Tạo Giải Đấu Mới</h3>
-            <p class="text-slate-400 text-xs mt-2 font-medium italic">Nạp file Excel để bắt đầu chia bảng</p>
-        </div>
-
-        <!-- Nút Lịch Sử -->
-        <div onclick="showHistory()" class="glass p-10 rounded-[3rem] text-center hover:border-purple-500 transition-all cursor-pointer group">
-            <div class="w-20 h-20 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-clock-rotate-left text-3xl text-purple-400"></i>
-            </div>
-            <h3 class="text-xl font-black uppercase">Lịch Sử Giải Đấu</h3>
-            <p class="text-slate-400 text-xs mt-2 font-medium italic">Xem lại các bảng đấu đã lưu trên Cloud</p>
-        </div>
-    </div>
-</div>
-
 <!-- MODAL LỊCH SỬ -->
 <div id="modal-history" class="fixed inset-0 z-[15000] hidden flex items-center justify-center bg-black/95 backdrop-blur-md p-6">
     <div class="glass max-w-2xl w-full p-8 rounded-[3rem] max-h-[80vh] overflow-hidden flex flex-col border-indigo-500/20">
