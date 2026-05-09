@@ -1,4 +1,4 @@
-const CACHE_NAME = 's-champ-v1';
+const CACHE_NAME = 's-champ-v2'; // Đổi từ v1 sang v2
 const ASSETS = [
   '/',
   '/index.html',
@@ -6,16 +6,13 @@ const ASSETS = [
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'
 ];
 
-// Cài đặt Service Worker và lưu trữ tài nguyên vào cache
 self.addEventListener('install', (e) => {
+  self.skipWaiting(); // Ép Service Worker mới kích hoạt ngay
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// Kích hoạt và dọn dẹp cache cũ
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
@@ -26,11 +23,9 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Xử lý yêu cầu mạng: Ưu tiên lấy từ Cache, nếu không có mới tải từ Network
+// CHIẾN LƯỢC MỚI: Ưu tiên lấy từ Mạng trước (Network First)
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then((res) => {
-      return res || fetch(e.request);
-    })
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
